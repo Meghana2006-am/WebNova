@@ -1,0 +1,81 @@
+🚨 Raksha Saheli – AI Safety Companion
+
+🌟 Project Overview
+
+Raksha Saheli is a smart safety web application designed to provide instant emergency support for:
+
+- 👧 Children
+- 👩 Women
+- 🚑 Accident victims
+
+It helps users quickly contact emergency services, share live location, and access nearby police stations.
+
+---
+
+🚀 Features
+
+🔹 Role-Based Safety Modes
+
+- Child Safety Mode (1098)
+- Women Safety Mode (1091)
+- Accident Emergency Mode (108)
+
+🔹 SOS Emergency Button
+
+- Instant emergency call
+- Loud alarm sound
+- Vibrations
+- Sends alert to backend server
+
+🔹 📍 Live Location Sharing
+
+- Sends Google Maps link via WhatsApp
+
+🔹 🚔 Nearby Police Stations
+
+- Uses location to find nearby police stations
+- Direct map navigation
+
+🔹 🌐 Universal SOS Link
+
+- Share SOS link with anyone instantly
+
+---
+
+🛠️ Technologies Used
+
+- HTML
+- CSS
+- JavaScript
+- Geolocation API
+- Fetch API
+
+---
+
+📱 How to Run
+
+1. Download the project
+2. Open "index.html" in browser
+   OR
+3. Use Live Server in VS Code
+
+---
+
+💡 Future Improvements
+
+- Mobile App version (Android/iOS)
+- AI voice activation (SOS by voice)
+- Real-time alerts to guardians
+- Backend deployment (Cloud)
+
+---
+
+👩‍💻 Team
+
+Web Nova
+
+---
+
+❤️ Mission
+
+"Your safety is our priority — Always Protected, Always Connected."
