@@ -1,45 +1,51 @@
-# 🚨 Raksha Saheli - Voice Safety Companion
+🛡️ Raksha Saheli – Voice Safety Companion
+Raksha Saheli is a smart emergency safety web application designed to provide instant protection for women, children, and accident victims. It enables fast SOS alerts using voice commands, one-tap emergency buttons, live location sharing, and nearby police support.
+🚀 Live Demo
+🌐 GitHub Pages / Deployed Link: https://web-nova-six.vercel.app/
+⚡ Features
+🎙️ Voice-activated SOS commands
+🚨 One-tap emergency SOS button
+📍 Live location sharing via Google Maps
+👥 Custom emergency contact management
+🚔 Nearby police station finder
+📞 Quick dial emergency numbers (112, 1091, 108, 1098)
+🌐 Universal SOS sharing via WhatsApp
+🧠 Problem It Solves
+In emergency situations, users often cannot react quickly. Raksha Saheli ensures instant help access within seconds, reducing response time and improving personal safety.
+🛠️ Tech Stack
+HTML5
+CSS3
+JavaScript
+Web Speech API (Voice Recognition)
+Geolocation API
+Overpass API (Police Station Search)
+📂 Project Structure
 
-[![Live Demo](https://img.shields.io/badge/Live-Demo-green)](YOUR_DEPLOYED_LINK_HERE)
-[![Hackathon](https://img.shields.io/badge/Hackathon-2026-blue)]()
-
-## 📌 Quick Overview
-**Raksha Saheli** is a voice-activated safety web app that helps users get emergency help instantly when they can't use their hands.
-
-## 🎥 Demo
-[Add screen recording GIF here]
-
-## ✨ Key Features
-- 🎤 **Voice Commands** - Say "SOS", "Call Mom", "Share Location"
-- 🚨 **One-Tap SOS** - Emergency alert with alarm
-- 📍 **Live Location Sharing** - Send your location to emergency contacts
-- 👮 **Nearby Police Finder** - Find nearest police stations
-- 📞 **Emergency Calling** - Direct call to saved contacts
-
-## 🛠️ Tech Stack
-- HTML5, CSS3, JavaScript
-- Web Speech API (Voice Recognition)
-- Geolocation API
-- Local Storage for contacts
-
-## 🚀 How to Test
-1. Click the live demo link above
-2. Allow microphone access when prompted
-3. Try voice commands:
-   - "SOS" - Triggers emergency
-   - "Share location" - Gets your coordinates
-   - "Find police" - Shows nearby stations
-
-## 📱 Voice Commands Supported
-| Command | Action |
-|---------|--------|
-| "SOS" | Triggers emergency alert |
-| "Share location" | Sends current location |
-| "Find police" | Shows nearby police stations |
-| "Call [name]" | Calls emergency contact |
-
-## 👥 Contributors
-- Meghana2006-am
-
-## 🏆 Hackathon Submission
-Built for [Hackathon Name] - Solving women safety through technology
+Raksha-Saheli/
+│── index.html
+│── style.css
+│── script.js
+│── voicerecognition.js
+│── progress.md
+│── README.md
+🏁 How It Works
+User selects safety mode (Child / Women / Accident)
+App detects location automatically
+Voice command or SOS button triggers emergency
+Sends alert + calls emergency number
+Shares live location with contacts
+📊 Project Progress
+✅ UI Design completed
+✅ Voice recognition integrated
+✅ SOS emergency system built
+✅ Emergency contacts feature added
+✅ Police station locator implemented
+🚧 Backend integration (optional future enhancement)
+🎯 Future Improvements
+Mobile APK conversion
+SMS API integration for offline alerts
+AI-based threat detection
+Real-time background monitoring
+👨‍💻 Team
+Web Nova Team
+Focus: Women Safety & Emergency Response System
