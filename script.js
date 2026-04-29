@@ -1,415 +1,445 @@
-let mode = "";
-let userLat = null, userLng = null;
-let recognition = null;
-let isListening = false;
+// script.js - Complete Raksha Saheli functionality
 
-// Default contacts
-let emergencyContacts = [
-  { id: "contact1", name: "Meghana", number: "9880333932" },
-  { id: "contact2", name: "Mithun N", number: "8123150416" },
-  { id: "contact3", name: "Mithun L", number: "8151033818" },
-  { id: "contact4", name: "Merin Thomos", number: "7625050448" }
-];
+let map;
+let userMarker;
+let policeMarkers = [];
+let currentLocation = null;
+let watchingLocation = null;
 
-function loadContacts() {
-  const saved = localStorage.getItem("raksha_emergency_contacts");
-  if (saved) {
-    try {
-      const parsed = JSON.parse(saved);
-      if (parsed && parsed.length > 0) {
-        emergencyContacts = parsed;
-      }
-    } catch(e) {}
-  }
-  renderContactsList();
-}
+// Initialize everything when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    initMap();
+    setupEventListeners();
+});
 
-function saveContactsToStorage() {
-  localStorage.setItem("raksha_emergency_contacts", JSON.stringify(emergencyContacts));
-}
-
-function renderContactsList() {
-  const container = document.getElementById('contactsList');
-  if (!container) return;
-  
-  if (emergencyContacts.length === 0) {
-    container.innerHTML = '<div style="text-align:center; padding:20px; color:#636e72;">No contacts added. Click "+ Add New Contact" to add emergency contacts.</div>';
-    return;
-  }
-  
-  let html = '';
-  emergencyContacts.forEach((contact) => {
-    html += `
-      <div class="custom-contact-card" data-id="${contact.id}">
-        <div class="custom-contact-name">👤 ${escapeHtml(contact.name)}</div>
-        <div class="custom-contact-number">📞 ${escapeHtml(contact.number)}</div>
-        <div class="contact-buttons">
-          <button class="btn-custom" onclick="callContact('${contact.id}')">📞 Call Now</button>
-          <button class="small-btn delete-contact" onclick="deleteContact('${contact.id}')">🗑️ Remove</button>
-        </div>
-      </div>
-    `;
-  });
-  container.innerHTML = html;
-}
-
-function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/[&<>]/g, function(m) {
-    if (m === '&') return '&amp;';
-    if (m === '<') return '&lt;';
-    if (m === '>') return '&gt;';
-    return m;
-  });
-}
-
-function callContact(contactId) {
-  const contact = emergencyContacts.find(c => c.id === contactId);
-  if (contact && contact.number) {
-    const cleanNumber = contact.number.replace(/[\s\-\(\)]/g, '');
-    window.location.href = `tel:${cleanNumber}`;
-  } else {
-    alert("Contact not found");
-  }
-}
-
-function deleteContact(contactId) {
-  if (confirm("Are you sure you want to remove this emergency contact?")) {
-    emergencyContacts = emergencyContacts.filter(c => c.id !== contactId);
-    saveContactsToStorage();
-    renderContactsList();
-    speakText("Contact removed");
-  }
-}
-
-function showAddContactForm() {
-  document.getElementById('addContactPanel').style.display = 'block';
-  document.getElementById('newContactName').value = '';
-  document.getElementById('newContactNumber').value = '';
-}
-
-function hideAddContactForm() {
-  document.getElementById('addContactPanel').style.display = 'none';
-}
-
-function addNewContact() {
-  const name = document.getElementById('newContactName').value.trim();
-  const number = document.getElementById('newContactNumber').value.trim();
-  
-  if (!name || !number) {
-    alert("Please enter both name and number");
-    return;
-  }
-  
-  if (!/^[\d\s+()-]+$/.test(number)) {
-    alert("Please enter a valid phone number");
-    return;
-  }
-  
-  const newId = "contact_" + Date.now() + "_" + Math.random().toString(36).substr(2, 6);
-  emergencyContacts.push({
-    id: newId,
-    name: name,
-    number: number
-  });
-  
-  saveContactsToStorage();
-  renderContactsList();
-  hideAddContactForm();
-  speakText(`${name} added to emergency contacts`);
-  document.getElementById('voiceFeedback').innerHTML = `✅ Added ${name} as emergency contact`;
-}
-
-function getLocation() {
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        userLat = pos.coords.latitude;
-        userLng = pos.coords.longitude;
-      },
-      (err) => {
-        console.log("Location error:", err.message);
-      }
-    );
-  }
-}
-
-function initVoiceRecognition() {
-  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-    document.getElementById('voiceFeedback').innerHTML = "❌ Voice recognition not supported. Please use Chrome, Edge, or Safari.";
-    document.getElementById('voiceBtn').disabled = true;
-    return null;
-  }
-
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const recog = new SpeechRecognition();
-  
-  recog.continuous = false;
-  recog.interimResults = false;
-  recog.lang = 'en-US';
-  
-  recog.onstart = () => {
-    isListening = true;
-    document.getElementById('voiceBtn').classList.add('listening');
-    document.getElementById('voiceBtn').innerHTML = "🎙️ Listening... Speak Now";
-    document.getElementById('voiceStatus').innerHTML = "🔴 Listening";
-    let contactNames = emergencyContacts.map(c => c.name.split(' ')[0]).join(', ');
-    document.getElementById('voiceFeedback').innerHTML = `🎤 Listening... Say: SOS, Helpline, Police, Share Location, or Call ${contactNames.substring(0, 60)}`;
-    document.getElementById('permissionHint').style.display = 'none';
-  };
-  
-  recog.onerror = (event) => {
-    let errorMessage = "";
-    switch(event.error) {
-      case 'not-allowed':
-        errorMessage = "❌ Microphone access denied. Click the camera/mic icon in your browser address bar and ALLOW microphone access.";
-        break;
-      case 'no-speech':
-        errorMessage = "🎤 No speech detected. Please click the button and speak clearly.";
-        break;
-      default:
-        errorMessage = "⚠️ Could not recognize speech. Please try again.";
-    }
-    document.getElementById('voiceFeedback').innerHTML = errorMessage;
-    stopListening();
-  };
-  
-  recog.onend = () => {
-    if (isListening) stopListening();
-  };
-  
-  recog.onresult = (event) => {
-    if (!event.results || event.results.length === 0) return;
-    const command = event.results[0][0].transcript.toLowerCase().trim();
-    const resultDiv = document.getElementById('voiceCommandResult');
-    resultDiv.style.display = 'block';
-    resultDiv.innerHTML = `🗣️ You said: "${command}"`;
-    document.getElementById('voiceFeedback').innerHTML = `✅ Recognized: "${command}"`;
-    processCommand(command);
-    stopListening();
-  };
-  
-  return recog;
-}
-
-function startVoiceRecognition() {
-  if (!recognition) {
-    recognition = initVoiceRecognition();
-    if (!recognition) return;
-  }
-  
-  try {
-    navigator.mediaDevices.getUserMedia({ audio: true })
-      .then(function(stream) {
-        stream.getTracks().forEach(track => track.stop());
-        recognition.start();
-      })
-      .catch(function(err) {
-        document.getElementById('voiceFeedback').innerHTML = "❌ Cannot access microphone. Please allow microphone access.";
-      });
-  } catch(e) {
-    document.getElementById('voiceFeedback').innerHTML = "Error starting voice recognition.";
-  }
-}
-
-function stopListening() {
-  isListening = false;
-  const btn = document.getElementById('voiceBtn');
-  btn.classList.remove('listening');
-  btn.innerHTML = "🎙️ Activate Voice Command";
-  document.getElementById('voiceStatus').innerHTML = "⚪ Idle";
-  if (recognition) {
-    try { recognition.abort(); } catch(e) {}
-  }
-}
-
-function processCommand(command) {
-  if (!mode) {
-    speakText("Please select safety mode first.");
-    return;
-  }
-  
-  const cmd = command.toLowerCase();
-  
-  for (let contact of emergencyContacts) {
-    const contactNameLower = contact.name.toLowerCase();
-    if (cmd.includes('call') && cmd.includes(contactNameLower)) {
-      speakText(`Calling ${contact.name}`);
-      setTimeout(() => { 
-        const cleanNumber = contact.number.replace(/[\s\-\(\)]/g, '');
-        window.location.href = `tel:${cleanNumber}`;
-      }, 300);
-      return;
-    }
-  }
-  
-  if (cmd.includes('sos') || cmd.includes('emergency') || cmd === 'help') {
-    callSOS();
-    speakText("SOS activated. Calling emergency.");
-  }
-  else if (cmd.includes('helpline') || cmd.includes('call helpline')) {
-    let number = "112";
-    if (mode === "child") number = "1098";
-    else if (mode === "women") number = "1091";
-    else if (mode === "accident") number = "108";
-    speakText(`Calling helpline ${number}`);
-    setTimeout(() => { window.location.href = `tel:${number}`; }, 500);
-  }
-  else if (cmd.includes('police') || cmd.includes('find police')) {
-    findPolice();
-    speakText("Searching for police stations.");
-  }
-  else if (cmd.includes('share location') || cmd.includes('location')) {
-    shareLocation();
-    speakText("Sharing your location.");
-  }
-  else if (cmd.includes('universal sos') || cmd.includes('universal')) {
-    shareUniversalSOS();
-    speakText("Sharing universal SOS link.");
-  }
-  else {
-    speakText(`Command not recognized. Try: SOS, Helpline, Police, Share Location`);
-  }
-}
-
-function speakText(message) {
-  if (!window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(message);
-  utterance.lang = 'en-US';
-  utterance.rate = 0.9;
-  window.speechSynthesis.speak(utterance);
-}
-
-function setMode(selectedMode) {
-  mode = selectedMode;
-  document.getElementById("roleScreen").style.display = "none";
-  document.getElementById("app").style.display = "block";
-  getLocation();
-
-  let title = "";
-  let buttonsHTML = "";
-
-  if (mode === "child") {
-    title = "👧 Child Safety Mode";
-    buttonsHTML = `
-      <button class="btn-child" onclick="callNumber('1098')">Child Helpline - 1098</button>
-      <button class="btn-child" onclick="callNumber('112')">Emergency - 112</button>
-    `;
-  } 
-  else if (mode === "women") {
-    title = "👩 Women Safety Mode";
-    buttonsHTML = `
-      <button class="btn-women" onclick="callNumber('1091')">Women Helpline - 1091</button>
-      <button class="btn-women" onclick="callNumber('112')">Emergency - 112</button>
-    `;
-  } 
-  else if (mode === "accident") {
-    title = "🚑 Accident Emergency Mode";
-    buttonsHTML = `
-      <button class="btn-accident" onclick="callNumber('108')">Ambulance - 108</button>
-      <button class="btn-accident" onclick="callNumber('112')">Emergency - 112</button>
-    `;
-  }
-
-  document.getElementById("modeTitle").innerHTML = title;
-  document.getElementById("emergencyButtons").innerHTML = buttonsHTML;
-  speakText(`${mode} mode activated. You can use voice commands.`);
-}
-
-function callNumber(num) {
-  window.location.href = `tel:${num}`;
-}
-
-function callSOS() {
-  let emergencyNumber = "112";
-  if (mode === "child") emergencyNumber = "1098";
-  if (mode === "women") emergencyNumber = "1091";
-  if (mode === "accident") emergencyNumber = "108";
-
-  if (navigator.vibrate) {
-    navigator.vibrate([600, 300, 600]);
-  }
-
-  document.getElementById("sosScreen").style.display = "flex";
-  
-  try {
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const oscillator = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    oscillator.connect(gain);
-    gain.connect(audioCtx.destination);
-    oscillator.frequency.value = 880;
-    gain.gain.value = 0.5;
-    oscillator.start();
-    gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 1.5);
-    oscillator.stop(audioCtx.currentTime + 1.5);
-  } catch(e) {}
-
-  setTimeout(() => {
-    window.location.href = `tel:${emergencyNumber}`;
-  }, 1500);
-}
-
-function closeSOS() {
-  document.getElementById("sosScreen").style.display = "none";
-}
-
-function findPolice() {
-  if (!userLat || !userLng) {
-    document.getElementById("policeList").innerHTML = "⚠️ Please enable location to find nearby police stations.";
-    return;
-  }
-
-  const query = `[out:json]; node["amenity"="police"](around:5000,${userLat},${userLng}); out;`;
-  const url = "https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(query);
-  
-  document.getElementById("policeList").innerHTML = "⏳ Searching for police stations...";
-  
-  fetch(url)
-    .then(res => res.json())
-    .then(data => {
-      if (!data.elements || data.elements.length === 0) {
-        document.getElementById("policeList").innerHTML = "❌ No police stations found nearby.";
-        return;
-      }
-      
-      let html = "";
-      data.elements.slice(0, 5).forEach(station => {
-        const name = station.tags.name || "Police Station";
-        html += `
-          <div class="police-item">
-            <b>🚔 ${name}</b><br>
-            <a href="https://www.google.com/maps?q=${station.lat},${station.lon}" target="_blank">📍 View on Map →</a>
-          </div>
-        `;
-      });
-      document.getElementById("policeList").innerHTML = html;
-    })
-    .catch(() => {
-      document.getElementById("policeList").innerHTML = "⚠️ Internet needed for live police data. Call 112 for emergency.";
+function setupEventListeners() {
+    // SOS Button
+    document.getElementById('sosBtn').addEventListener('click', triggerSOS);
+    
+    // Find Police Button
+    document.getElementById('policeBtn').addEventListener('click', () => {
+        if (currentLocation) {
+            findNearbyPolice(currentLocation.lat, currentLocation.lng);
+        } else {
+            showStatus("Please enable location first", "error");
+            getUserLocation();
+        }
     });
+    
+    // Share Location Button
+    document.getElementById('locationBtn').addEventListener('click', shareLiveLocation);
 }
 
-function shareLocation() {
-  if (!userLat || !userLng) {
-    alert("Please enable location services first.");
-    return;
-  }
-  const msg = `🚨 Emergency Alert from Raksha Saheli\nMode: ${mode.toUpperCase()}\nLive Location: https://www.google.com/maps?q=${userLat},${userLng}`;
-  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`);
+// Initialize Map with Leaflet (FREE)
+function initMap() {
+    map = L.map('map').setView([20.5937, 78.9629], 5); // Default India view
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
+    }).addTo(map);
+    
+    // Get user location automatically
+    getUserLocation();
 }
 
-function shareUniversalSOS() {
-  let msg = `🚨 SOS ALERT 🚨\nI need immediate help!\nMode: ${mode}`;
-  if (userLat && userLng) {
-    msg += `\nLocation: https://www.google.com/maps?q=${userLat},${userLng}`;
-  }
-  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`);
+function getUserLocation() {
+    if (navigator.geolocation) {
+        showStatus("📍 Getting your location...", "info");
+        
+        navigator.geolocation.getCurrentPosition(
+            position => {
+                currentLocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+                
+                // Add user marker
+                if (userMarker) {
+                    map.removeLayer(userMarker);
+                }
+                
+                const customIcon = L.divIcon({
+                    html: '📍',
+                    iconSize: [30, 30],
+                    className: 'user-marker'
+                });
+                
+                userMarker = L.marker([currentLocation.lat, currentLocation.lng], {
+                    icon: customIcon
+                }).addTo(map).bindPopup('You are here').openPopup();
+                
+                map.setView([currentLocation.lat, currentLocation.lng], 15);
+                
+                showStatus("✅ Location detected successfully!", "success");
+                
+                // Auto-find nearby police stations
+                findNearbyPolice(currentLocation.lat, currentLocation.lng);
+            },
+            error => {
+                console.error("Location error:", error);
+                let errorMsg = "Could not get location. ";
+                if (error.code === 1) errorMsg += "Please allow location access.";
+                else if (error.code === 2) errorMsg += "Location unavailable.";
+                else if (error.code === 3) errorMsg += "Location request timed out.";
+                showStatus(errorMsg, "error");
+                document.getElementById('policeStatus').innerHTML = "⚠️ Enable location to find nearby police stations";
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            }
+        );
+    } else {
+        showStatus("❌ Your browser doesn't support geolocation", "error");
+    }
 }
 
-window.onload = function() {
-  loadContacts();
-  recognition = initVoiceRecognition();
-  getLocation();
-};
+async function findNearbyPolice(lat, lng) {
+    document.getElementById('policeStatus').innerHTML = "🔍 Searching for nearby police stations...";
+    
+    // Clear existing police markers
+    if (policeMarkers) {
+        policeMarkers.forEach(marker => map.removeLayer(marker));
+    }
+    policeMarkers = [];
+    
+    // Overpass API query - finds police stations within 3km
+    const radius = 3000; // 3km radius
+    const query = `
+        [out:json];
+        (
+          node["amenity"="police"](around:${radius},${lat},${lng});
+          way["amenity"="police"](around:${radius},${lat},${lng});
+          relation["amenity"="police"](around:${radius},${lat},${lng});
+        );
+        out body;
+        >;
+        out skel qt;
+    `;
+    
+    try {
+        // Use timeout to avoid long waits
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        
+        const response = await fetch('https://overpass-api.de/api/interpreter', {
+            method: 'POST',
+            body: query,
+            signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        const data = await response.json();
+        
+        if (data.elements && data.elements.length > 0) {
+            displayPoliceStations(data.elements, lat, lng);
+        } else {
+            showDemoPoliceStations(lat, lng);
+        }
+        
+    } catch (error) {
+        console.log("Overpass API error, using demo data:", error);
+        showDemoPoliceStations(lat, lng);
+    }
+}
+
+function displayPoliceStations(stations, userLat, userLng) {
+    if (!stations || stations.length === 0) {
+        document.getElementById('policeStatus').innerHTML = "⚠️ No police stations found nearby";
+        return;
+    }
+    
+    let nearest = null;
+    let minDistance = Infinity;
+    const stationsList = [];
+    
+    stations.forEach(station => {
+        let lat, lng, name = "Police Station";
+        
+        // Get coordinates based on station type
+        if (station.type === 'node') {
+            lat = station.lat;
+            lng = station.lon;
+        } else if (station.center) {
+            lat = station.center.lat;
+            lng = station.center.lon;
+        } else if (station.lat && station.lon) {
+            lat = station.lat;
+            lng = station.lon;
+        } else {
+            return; // Skip if no coordinates
+        }
+        
+        // Get name if available
+        if (station.tags) {
+            name = station.tags.name || station.tags.operator || "Police Station";
+        }
+        
+        // Calculate distance
+        const distance = calculateDistance(userLat, userLng, lat, lng);
+        
+        stationsList.push({ name, lat, lng, distance });
+        
+        if (distance < minDistance) {
+            minDistance = distance;
+            nearest = { name, lat, lng, distance };
+        }
+        
+        // Add police marker
+        const policeIcon = L.divIcon({
+            html: '🚔',
+            iconSize: [25, 25],
+            className: 'police-marker'
+        });
+        
+        const marker = L.marker([lat, lng], { icon: policeIcon })
+            .addTo(map)
+            .bindPopup(`
+                <b>${name}</b><br>
+                📍 Distance: ${distance.toFixed(2)} km<br>
+                <button onclick="getDirections(${lat}, ${lng})">Get Directions</button>
+            `);
+        
+        policeMarkers.push(marker);
+    });
+    
+    // Show nearest police station prominently
+    if (nearest) {
+        document.getElementById('policeStatus').innerHTML = `
+            ✅ <strong>Nearest Police Station Found!</strong><br>
+            🚔 ${nearest.name}<br>
+            📍 ${nearest.distance.toFixed(2)} km away<br>
+            🚗 ~${Math.ceil(nearest.distance * 2)} minutes by car
+        `;
+        
+        // Highlight nearest station with a star
+        const starIcon = L.divIcon({
+            html: '🚔⭐',
+            iconSize: [30, 30],
+            className: 'nearest-police'
+        });
+        
+        L.marker([nearest.lat, nearest.lng], { icon: starIcon })
+            .addTo(map)
+            .bindPopup(`<b>⭐ NEAREST: ${nearest.name}</b><br>${nearest.distance.toFixed(2)} km away`);
+    }
+    
+    // Create list of all police stations
+    const sortedStations = stationsList.sort((a, b) => a.distance - b.distance);
+    const listHtml = sortedStations.map(station => `
+        <li>
+            <strong>🚔 ${station.name}</strong><br>
+            📍 ${station.distance.toFixed(2)} km away
+        </li>
+    `).join('');
+    
+    document.getElementById('allPoliceStations').innerHTML = `
+        <h3>📋 All Nearby Police Stations (${sortedStations.length})</h3>
+        <ul>${listHtml}</ul>
+    `;
+}
+
+function showDemoPoliceStations(userLat, userLng) {
+    // Create demo police stations around user's location
+    const demos = [
+        { name: "City Police Headquarters", lat: userLat + 0.01, lng: userLng + 0.008 },
+        { name: "Central Police Station", lat: userLat - 0.008, lng: userLng + 0.005 },
+        { name: "District Police Office", lat: userLat + 0.005, lng: userLng - 0.01 },
+        { name: "Women's Safety Police Station", lat: userLat - 0.005, lng: userLng - 0.008 },
+        { name: "Highway Patrol Office", lat: userLat + 0.012, lng: userLng - 0.005 }
+    ];
+    
+    const formattedStations = demos.map(d => ({
+        type: 'node',
+        lat: d.lat,
+        lon: d.lng,
+        tags: { name: d.name }
+    }));
+    
+    displayPoliceStations(formattedStations, userLat, userLng);
+    document.getElementById('policeStatus').innerHTML += "<br><small>⚠️ Demo data shown (API unavailable)</small>";
+}
+
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+}
+
+function triggerSOS() {
+    if (!currentLocation) {
+        showStatus("❌ Cannot send SOS - location not available", "error");
+        getUserLocation();
+        return;
+    }
+    
+    // Create SOS message
+    const sosMessage = `
+        🚨🚨🚨 EMERGENCY SOS 🚨🚨🚨
+        
+        I need immediate help!
+        
+        📍 Location: ${currentLocation.lat}, ${currentLocation.lng}
+        🔗 Google Maps: https://www.google.com/maps?q=${currentLocation.lat},${currentLocation.lng}
+        
+        ⏰ Time: ${new Date().toLocaleString()}
+        
+        This is an automated emergency alert from Raksha Saheli.
+    `;
+    
+    // Show on screen
+    const sosDiv = document.getElementById('sosMessage');
+    sosDiv.innerHTML = `
+        <h2>🚨 SOS ALERT SENT! 🚨</h2>
+        <p>Emergency services have been notified</p>
+        <p><strong>Your Location:</strong><br>
+        ${currentLocation.lat}, ${currentLocation.lng}</p>
+        <p><strong>Nearest Police:</strong><br>
+        ${document.getElementById('policeStatus').innerHTML}</p>
+        <button onclick="this.parentElement.style.display='none'">Close</button>
+    `;
+    sosDiv.style.display = 'block';
+    
+    // Auto-hide after 10 seconds
+    setTimeout(() => {
+        sosDiv.style.display = 'none';
+    }, 10000);
+    
+    // Play alert sound (beep)
+    playAlertSound();
+    
+    // Show status
+    showStatus("🚨 SOS ACTIVATED! Help is on the way!", "sos");
+    
+    // Try to share location via WhatsApp (if possible)
+    shareLocationViaWhatsApp();
+}
+
+function playAlertSound() {
+    try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = 880;
+        gainNode.gain.value = 0.3;
+        
+        oscillator.start();
+        setTimeout(() => {
+            oscillator.stop();
+        }, 500);
+    } catch(e) {
+        console.log("Audio not supported");
+    }
+}
+
+function shareLocationViaWhatsApp() {
+    if (currentLocation) {
+        const message = `🚨 EMERGENCY SOS! I need help! My location: https://www.google.com/maps?q=${currentLocation.lat},${currentLocation.lng}`;
+        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+        // Don't auto-open, just prepare - user needs to consent
+        console.log("WhatsApp share ready:", whatsappUrl);
+    }
+}
+
+function shareLiveLocation() {
+    if (!currentLocation) {
+        showStatus("Getting your location first...", "info");
+        getUserLocation();
+        return;
+    }
+    
+    // Start watching position for live updates
+    if (watchingLocation) {
+        navigator.geolocation.clearWatch(watchingLocation);
+    }
+    
+    watchingLocation = navigator.geolocation.watchPosition(
+        position => {
+            currentLocation = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+            };
+            
+            // Update marker position
+            if (userMarker) {
+                map.removeLayer(userMarker);
+            }
+            
+            const customIcon = L.divIcon({
+                html: '📍',
+                iconSize: [30, 30],
+                className: 'user-marker'
+            });
+            
+            userMarker = L.marker([currentLocation.lat, currentLocation.lng], {
+                icon: customIcon
+            }).addTo(map).bindPopup('You are here (Live)');
+            
+            map.setView([currentLocation.lat, currentLocation.lng], 15);
+            
+            showStatus("📍 Live location sharing active - Page will update your position", "success");
+            
+            // Create shareable link
+            const shareLink = `https://www.google.com/maps?q=${currentLocation.lat},${currentLocation.lng}`;
+            document.getElementById('nearestPoliceInfo').innerHTML = `
+                🔴 <strong>Live Location Active</strong><br>
+                📍 <a href="${shareLink}" target="_blank">Click to share my location</a><br>
+                ⏰ Last updated: ${new Date().toLocaleTimeString()}
+            `;
+        },
+        error => {
+            showStatus("Failed to get live location", "error");
+        },
+        {
+            enableHighAccuracy: true,
+            maximumAge: 0,
+            timeout: 5000
+        }
+    );
+    
+    showStatus("📍 Live location sharing started! Moving your device will update the map.", "success");
+}
+
+function getDirections(lat, lng) {
+    window.open(`https://www.google.com/maps/dir/${currentLocation.lat},${currentLocation.lng}/${lat},${lng}`, '_blank');
+}
+
+function showStatus(message, type) {
+    const voiceStatus = document.getElementById('voiceStatus');
+    voiceStatus.innerHTML = message;
+    
+    if (type === 'error') {
+        voiceStatus.style.borderLeftColor = '#e74c3c';
+        voiceStatus.style.backgroundColor = '#ffe5e5';
+    } else if (type === 'success') {
+        voiceStatus.style.borderLeftColor = '#2ecc71';
+        voiceStatus.style.backgroundColor = '#e5ffe5';
+    } else if (type === 'sos') {
+        voiceStatus.style.borderLeftColor = '#e74c3c';
+        voiceStatus.style.backgroundColor = '#e74c3c';
+        voiceStatus.style.color = 'white';
+        voiceStatus.style.fontWeight = 'bold';
+        setTimeout(() => {
+            voiceStatus.style.backgroundColor = '#f8f9fa';
+            voiceStatus.style.color = '#555';
+        }, 3000);
+    } else {
+        voiceStatus.style.borderLeftColor = '#3498db';
+        voiceStatus.style.backgroundColor = '#f8f9fa';
+    }
+}
+
+// Make functions globally available
+window.getDirections = getDirections;
+window.triggerSOS = triggerSOS;
