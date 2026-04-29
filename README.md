@@ -1,51 +1,54 @@
-🛡️ Raksha Saheli – Voice Safety Companion
-Raksha Saheli is a smart emergency safety web application designed to provide instant protection for women, children, and accident victims. It enables fast SOS alerts using voice commands, one-tap emergency buttons, live location sharing, and nearby police support.
-🚀 Live Demo
-🌐 GitHub Pages / Deployed Link: https://web-nova-six.vercel.app/
-⚡ Features
-🎙️ Voice-activated SOS commands
-🚨 One-tap emergency SOS button
-📍 Live location sharing via Google Maps
-👥 Custom emergency contact management
-🚔 Nearby police station finder
-📞 Quick dial emergency numbers (112, 1091, 108, 1098)
-🌐 Universal SOS sharing via WhatsApp
-🧠 Problem It Solves
-In emergency situations, users often cannot react quickly. Raksha Saheli ensures instant help access within seconds, reducing response time and improving personal safety.
-🛠️ Tech Stack
-HTML5
-CSS3
-JavaScript
-Web Speech API (Voice Recognition)
-Geolocation API
-Overpass API (Police Station Search)
-📂 Project Structure
+# 🛡️ Raksha Saheli – Voice Safety Companion
 
-Raksha-Saheli/
-│── index.html
-│── style.css
-│── script.js
-│── voicerecognition.js
-│── progress.md
-│── README.md
-🏁 How It Works
-User selects safety mode (Child / Women / Accident)
-App detects location automatically
-Voice command or SOS button triggers emergency
-Sends alert + calls emergency number
-Shares live location with contacts
-📊 Project Progress
-✅ UI Design completed
-✅ Voice recognition integrated
-✅ SOS emergency system built
-✅ Emergency contacts feature added
-✅ Police station locator implemented
-🚧 Backend integration (optional future enhancement)
-🎯 Future Improvements
-Mobile APK conversion
-SMS API integration for offline alerts
-AI-based threat detection
-Real-time background monitoring
-👨‍💻 Team
-Web Nova Team
-Focus: Women Safety & Emergency Response System
+## 🚨 Project Overview
+Raksha Saheli is a real-time AI-powered safety web application designed to protect women, children, and individuals during emergencies. It provides instant SOS alerts, voice-activated commands, live location sharing, emergency contacts, and nearby police assistance in one platform.
+
+The system ensures fast emergency response even when the user cannot type or manually operate the device.
+
+---
+
+## 🌐 Live Demo
+https://meghana2006-am.github.io/WebNova/
+
+---
+
+## 🎯 Problem Statement
+In emergency situations, users may not be able to call or type for help. A fast, hands-free, and intelligent safety system is needed to instantly alert emergency contacts and authorities.
+
+---
+
+## 💡 Solution
+Raksha Saheli provides:
+- Voice-based emergency activation
+- One-tap SOS system
+- Live location sharing
+- Emergency contact management
+- Nearby police station finder
+- Quick emergency calling system
+
+---
+
+## ✨ Features
+
+- 🎙️ Voice command-based SOS system  
+- 🚨 Instant emergency SOS button  
+- 📍 Live Google Maps location sharing  
+- 👥 Add/remove emergency contacts  
+- 🚔 Nearby police station detection  
+- 🌐 WhatsApp SOS sharing  
+
+---
+
+## 🛠️ Tech Stack
+
+- HTML  
+- CSS  
+- JavaScript  
+- Web Speech API  
+- Geolocation API  
+- OpenStreetMap API  
+- WhatsApp Web API  
+
+---
+
+## 📁 Project Structure
