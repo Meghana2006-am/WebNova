@@ -159,7 +159,35 @@ Fully functional prototype with advanced features including voice control and em
 - Add backend alert system
 - Convert to mobile application
 - Final testing and demo preparation
+# 📊 Progress Report – Checkpoint 5
 
+## 🕒 Work Completed Since Checkpoint 4
+
+- 🎙️ Improved Voice Recognition system (better command detection)
+- 👥 Enhanced Emergency Contact system with add/delete feature
+- 📍 Improved live location sharing accuracy
+- 🚔 Integrated nearby police station finder using Overpass API
+- 🚨 Optimized SOS emergency trigger flow
+- 💾 Added local storage support for contacts
+
+## ⚙️ Technical Improvements
+
+- Better error handling in voice recognition
+- Improved UI responsiveness
+- Faster SOS response time
+- Code optimized for mobile usage
+
+## 🚧 Current Status
+
+- Frontend fully functional
+- Core safety features integrated
+- Ready for demo and presentation
+
+## 🎯 Next Step
+
+- Prepare PPT slides
+- Record demo video
+- Final GitHub cleanup before submission
 ---
 
 👩‍💻 Team
